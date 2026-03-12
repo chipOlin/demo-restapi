@@ -1,29 +1,20 @@
+import uuid
 from flask import Flask, request
+from db import stores, items
 
 app = Flask(__name__)
 
-stores = [
-    {
-        "name": "My Store",
-        "items": [
-            {
-                "name": "Chair",
-                "price": 15.99
-            }
-        ]
-    }
-]
-
 @app.get("/store")
 def get_stores():
-    return {"stores": stores}
+    return {"stores": list(stores.values())}
 
 @app.post("/store")
 def create_store():
-    request_data = request.get_json()
-    new_store = {"name": request_data["name"], "items": []}
-    stores.append(new_store)
-    return new_store, 201
+    store_data = request.get_json()
+    store_id = uuid.uuid4().hex
+    store = {**store_data, "id": store_id}
+    stores[store_id] = store
+    return store, 201
 
 @app.post("/store/<string:name>/item")
 def create_item(name):
@@ -35,12 +26,12 @@ def create_item(name):
                 return new_item, 201
     return {"message": "Store not found"}, 404
 
-@app.get("/store/<string:name>")
-def get_store(name):
-    for store in stores:
-        if store["name"] == name:
-            return store
-    return {"message": "Store not found"}, 404
+@app.get("/store/<string:store_id>")
+def get_store(store_id):
+    try:
+        return stores[store_id]
+    except KeyError:
+        return {"message": "Store not found"}, 404
 
 @app.get("/store/<string:name>/item")
 def get_item_in_store(name):
